@@ -138,7 +138,7 @@ applyFilter(struct Filter *filter, cs1300bmp *input, cs1300bmp *output)
 #endif
 
 	long long cycStart, cycStop;
-	//  double start,stop;
+	  double start,stop;
 #if defined(__arm__)
 	cycStart = get_cyclecount();
 #else
@@ -199,20 +199,16 @@ applyFilter(struct Filter *filter, cs1300bmp *input, cs1300bmp *output)
 				UltimateResult = result0 + result1 + result2;
 				output -> color[plane][row][col] =UltimateResult / dividerJ;
 
-				if((output -> color[plane][row][col]  > 0 ) && (output -> color[plane][row][col]  <= 255 ))
+				if((output -> color[plane][row][col]  < 0 ) ||( output -> color[plane][row][col]  > 255 ))
 				{
-					continue;
-				}
-				else
-				{
-					if ( output -> color[plane][row][col]  < 0 )
-					{
-						output -> color[plane][row][col] = 0;
-					}
-					if ( output -> color[plane][row][col]  > 255 )
-					{
-						output -> color[plane][row][col] = 255;
-					}
+          if ( output -> color[plane][row][col]  < 0 )
+          {
+            output -> color[plane][row][col] = 0;
+          }
+          else
+          {
+            output -> color[plane][row][col] = 255;
+          }
 				}
 			}
 		}
