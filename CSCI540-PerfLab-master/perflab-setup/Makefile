@@ -2,7 +2,7 @@
 ##
 
 CXX	=g++
-CXXFLAGS= -static 
+CXXFLAGS= -static
 
 goals: judge
 	echo "Done"

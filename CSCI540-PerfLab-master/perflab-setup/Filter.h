@@ -1,7 +1,7 @@
 //-*-c++-*-
 #ifndef _Filter_h_
 #define _Filter_h_
-
+#include <iostream>
 using namespace std;
 
 class Filter {
@@ -11,14 +11,42 @@ class Filter {
 
 public:
   Filter(int _dim);
-  int get(int r, int c);
-  void set(int r, int c, int value);
+  inline int get(int &r, int &c)
+  {
+    return data[ r * dim + c ];
+  }
+  inline void set(int &r, int &c, int &value)
+  {
+    data[ r * dim + c ] = value;
+  }
 
-  int getDivisor();
-  void setDivisor(int value);
+  inline int getDivisor()
+  {
+    return divisor;
+  }
 
-  int getSize();
-  void info();
+
+  inline void setDivisor(int &value)
+  {
+    divisor = value;
+  }
+  inline int getSize()
+  {
+    return dim;
+  }
+
+  inline void info()
+  {
+    cout << "Filter is.." << endl;
+    for (int col = 0; col < dim; col++) {
+      for (int row = 0; row < dim; row++) {
+        int v = get(row, col);
+        cout << v << " ";
+      }
+      cout << endl;
+    }
+  }
+
 };
 
 #endif

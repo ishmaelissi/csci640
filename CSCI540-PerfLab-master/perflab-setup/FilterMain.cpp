@@ -93,7 +93,7 @@ static inline unsigned int get_cyclecount (void)
 {
  unsigned int value;
  // Read CCNT Register
- asm volatile ("MRC p15, 0, %0, c9, c13, 0\t\n": "=r"(value)); 
+ asm volatile ("MRC p15, 0, %0, c9, c13, 0\t\n": "=r"(value));
  return value;
 }
 
@@ -102,7 +102,7 @@ static inline void init_perfcounters (int32_t do_reset, int32_t enable_divider)
  // in general enable all counters (including cycle counter)
  int32_t value = 1;
 
- // peform reset: 
+ // peform reset:
  if (do_reset)
  {
    value |= 2;     // reset all counters to zero.
@@ -115,10 +115,10 @@ static inline void init_perfcounters (int32_t do_reset, int32_t enable_divider)
  value |= 16;
 
  // program the performance-counter control-register:
- asm volatile ("MCR p15, 0, %0, c9, c12, 0\t\n" :: "r"(value)); 
+ asm volatile ("MCR p15, 0, %0, c9, c12, 0\t\n" :: "r"(value));
 
- // enable all counters: 
- asm volatile ("MCR p15, 0, %0, c9, c12, 1\t\n" :: "r"(0x8000000f)); 
+ // enable all counters:
+ asm volatile ("MCR p15, 0, %0, c9, c12, 1\t\n" :: "r"(0x8000000f));
 
  // clear overflows:
  asm volatile ("MCR p15, 0, %0, c9, c12, 3\t\n" :: "r"(0x8000000f));
@@ -138,7 +138,7 @@ applyFilter(struct Filter *filter, cs1300bmp *input, cs1300bmp *output)
   #endif
 
   long long cycStart, cycStop;
-  double start,stop;
+//  double start,stop;
   #if defined(__arm__)
   cycStart = get_cyclecount();
   #else
@@ -146,36 +146,40 @@ applyFilter(struct Filter *filter, cs1300bmp *input, cs1300bmp *output)
   #endif
   output -> width = input -> width;
   output -> height = input -> height;
+  int FilterSize=filter -> getSize();
 
+  for(int col = 1; col < (input -> width) - 1; col++)
+  {
+    for(int row = 1; row < (input -> height) - 1 ; row++)
+    {
+      for(int plane = 0; plane < 3; plane++)
+      {
+      //  int t=0;
+	      output -> color[plane][row][col] = 0;
 
-  for(int col = 1; col < (input -> width) - 1; col = col + 1) {
-    for(int row = 1; row < (input -> height) - 1 ; row = row + 1) {
-      for(int plane = 0; plane < 3; plane++) {
+	         for (int j = 0; j < FilterSize; j++)
+           {
+	            for (int i = 0; i < FilterSize; i++)
+              {
+	               output -> color[plane][row][col]
+	                = output -> color[plane][row][col]
+	                 + (input -> color[plane][row + i - 1][col + j - 1] * filter -> get(i, j) );
+	            }
+	           }
 
-	int t = 0;
-	output -> color[plane][row][col] = 0;
+	            output -> color[plane][row][col] =
+	            output -> color[plane][row][col] / filter -> getDivisor();
 
-	for (int j = 0; j < filter -> getSize(); j++) {
-	  for (int i = 0; i < filter -> getSize(); i++) {	
-	    output -> color[plane][row][col]
-	      = output -> color[plane][row][col]
-	      + (input -> color[plane][row + i - 1][col + j - 1] 
-		 * filter -> get(i, j) );
-	  }
-	}
-	
-	output -> color[plane][row][col] = 	
-	  output -> color[plane][row][col] / filter -> getDivisor();
-
-	if ( output -> color[plane][row][col]  < 0 ) {
-	  output -> color[plane][row][col] = 0;
-	}
-
-	if ( output -> color[plane][row][col]  > 255 ) { 
-	  output -> color[plane][row][col] = 255;
-	}
+	             if ( output -> color[plane][row][col]  < 0 )
+               {
+	                output -> color[plane][row][col] = 0;
+	             }
+	              if ( output -> color[plane][row][col]  > 255 )
+                 {
+	                  output -> color[plane][row][col] = 255;
+	               }
+        }
       }
-    }
   }
   #if defined(__arm__)
   cycStop = get_cyclecount();
