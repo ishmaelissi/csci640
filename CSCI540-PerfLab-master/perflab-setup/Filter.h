@@ -1,4 +1,8 @@
 //-*-c++-*-
+/*
+Reason for doing all functions inline
+http://stackoverflow.com/questions/10130395/inline-functions-vs-normal-functions-in-c
+*/
 #ifndef _Filter_h_
 #define _Filter_h_
 #include <iostream>
@@ -11,11 +15,11 @@ class Filter {
 
 public:
   Filter(int _dim);
-  inline int get(int &r, int &c)
+  inline int get(int r, int c)
   {
     return data[ r * dim + c ];
   }
-  inline void set(int &r, int &c, int &value)
+  inline void set(int r, int c, int &value)
   {
     data[ r * dim + c ] = value;
   }
@@ -26,7 +30,7 @@ public:
   }
 
 
-  inline void setDivisor(int &value)
+  inline void setDivisor(int value)
   {
     divisor = value;
   }
@@ -38,8 +42,10 @@ public:
   inline void info()
   {
     cout << "Filter is.." << endl;
-    for (int col = 0; col < dim; col++) {
-      for (int row = 0; row < dim; row++) {
+    for (int col = 0; col < dim; col++)
+    {
+      for (int row = 0; row < dim; row++)
+      {
         int v = get(row, col);
         cout << v << " ";
       }
