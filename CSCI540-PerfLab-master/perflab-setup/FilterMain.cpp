@@ -1,10 +1,18 @@
+/*
+author: Akshay Joshi
+ref:
+http://bit.ly/perf640
+http://bit.ly/perf2_640
+
+*/
+
 #include <stdio.h>
 #include "cs1300bmp.h"
 #include <iostream>
 #include <stdint.h>
 #include <fstream>
 #include "Filter.h"
-
+#include <omp.h>
 using namespace std;
 
 #include "rtdsc.h"
@@ -15,8 +23,7 @@ using namespace std;
 Filter * readFilter(string filename);
 double applyFilter(Filter *filter, cs1300bmp *input, cs1300bmp *output);
 
-	int
-main(int argc, char **argv)
+	int main(int argc, char **argv)
 {
 
 	if ( argc < 2) {
@@ -138,7 +145,7 @@ applyFilter(struct Filter *filter, cs1300bmp *input, cs1300bmp *output)
 #endif
 
 	long long cycStart, cycStop;
-	  double start,stop;
+	double start,stop;
 #if defined(__arm__)
 	cycStart = get_cyclecount();
 #else
@@ -146,44 +153,37 @@ applyFilter(struct Filter *filter, cs1300bmp *input, cs1300bmp *output)
 #endif
 	output -> width = input -> width;
 	output -> height = input -> height;
-	int FilterSize=filter -> getSize();
-	int dividerJ=filter -> getDivisor();
-	int localFilter[3][3];
-  //doing it without fors
-/*	for (int j = 0; j < FilterSize; j++)
-	{
-		for (int i = 0; i < FilterSize; i++)
-		{
-			localFilter[i][j]=filter -> get(i, j);
-		}
-	}
-  */
-  //int i=0,j=0;
-    localFilter[0][0]=filter -> get(0, 0);
-    localFilter[0][1]=filter -> get(0, 1);
-    localFilter[0][2]=filter -> get(0, 2);
+	short FilterSize=filter -> getSize();//local variable
+	short dividerJ=filter -> getDivisor();//local variable
+	short localFilter[3][3];//used short because short improves perf over int
+	//loop unrolling process is used to optimize codes performance.
+	localFilter[0][0]=filter -> get(0, 0);
+	localFilter[0][1]=filter -> get(0, 1);
+	localFilter[0][2]=filter -> get(0, 2);
 
-    localFilter[1][0]=filter -> get(1, 0);
-    localFilter[1][1]=filter -> get(1, 1);
-    localFilter[1][2]=filter -> get(1, 2);
+	localFilter[1][0]=filter -> get(1, 0);
+	localFilter[1][1]=filter -> get(1, 1);
+	localFilter[1][2]=filter -> get(1, 2);
 
-    localFilter[2][0]=filter -> get(2, 0);
-    localFilter[2][1]=filter -> get(2, 1);
-    localFilter[2][2]=filter -> get(2, 2);
-  //
-	int result0,result1,result2,UltimateResult; //we need to store results here
-	int LocalHeight=(input -> height) - 1;
-	int LocalWidth=(input -> width) - 1;
+	localFilter[2][0]=filter -> get(2, 0);
+	localFilter[2][1]=filter -> get(2, 1);
+	localFilter[2][2]=filter -> get(2, 2);
+	short result0,result1,result2,UltimateResult; //we need to store results here
+	short LocalHeight=(input -> height) - 1;
+	short LocalWidth=(input -> width) - 1;
 	//  cerr<<"Filter SIZE :"<<FilterSize<<endl;
-	for(int plane = 0; plane < 3; plane++)
+#pragma omp parallel for
+	for(short plane = 0; plane < 3; plane++)
 	{
-		for(int row = 1; row <LocalHeight  ; row++)
+		for(short row = 1; row <LocalHeight  ; row++)
 		{
-			for(int col = 1; col < LocalWidth; col++)
+			for(short col = 1; col < LocalWidth; col++)
 			{
 				//  int t=0;//unused thing
-				//  output -> color[plane][row][col] = 0; this is going to get over written
-				//
+				// doing unrolling similar to line 153
+				/*also this provides result stored in local variables and then
+				  added to the Ultimate result
+				 */
 				result0 = (input -> color[plane][row-1][col-1] * localFilter[0][0] );
 				result1 = (input -> color[plane][row-1][col] * localFilter[0][1] );
 				result2 = (input -> color[plane][row-1][col+1] * localFilter[0][2] );
@@ -195,20 +195,20 @@ applyFilter(struct Filter *filter, cs1300bmp *input, cs1300bmp *output)
 				result0 += (input -> color[plane][row+1][col-1] * localFilter[2][0] );
 				result1 += (input -> color[plane][row+1][col] * localFilter[2][1] );
 				result2 +=(input -> color[plane][row+1][col+1] * localFilter[2][2] );
-				//
+				//+= operation is better than var=var+values;
 				UltimateResult = result0 + result1 + result2;
 				output -> color[plane][row][col] =UltimateResult / dividerJ;
 
 				if((output -> color[plane][row][col]  < 0 ) ||( output -> color[plane][row][col]  > 255 ))
-				{
-          if ( output -> color[plane][row][col]  < 0 )
-          {
-            output -> color[plane][row][col] = 0;
-          }
-          else
-          {
-            output -> color[plane][row][col] = 255;
-          }
+				{//execute the following things only if required
+					if ( output -> color[plane][row][col]  < 0 )
+					{
+						output -> color[plane][row][col] = 0;
+					}
+					else
+					{
+						output -> color[plane][row][col] = 255;
+					}
 				}
 			}
 		}

@@ -2,7 +2,7 @@
 ##
 
 CXX	=g++
-CXXFLAGS= -static
+CXXFLAGS= -static -ldl -lc
 
 goals: judge
 	echo "Done"
@@ -17,6 +17,7 @@ IMAGES = boats.bmp blocks-small.bmp
 TRIALS = 1 2 3 4
 
 judge: filter
+	export OMP_NUM_THREADS=8
 	-./Judge -p ./filter -i boats.bmp
 	-./Judge -p ./filter -i blocks-small.bmp
 
